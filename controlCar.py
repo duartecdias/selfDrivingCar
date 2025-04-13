@@ -18,12 +18,14 @@ webserver = socketio.Server()
 
 app = flask.Flask(__name__) #'__main__'
 
-model = keras.models.load_model('model.h5')
+model = keras.models.load_model('model2.h5')
 
 # @app.route('/home')
 # def greeting():
 # 	return "Welcome!"
 #
+
+speedLimit = 10.0
 
 def imagePreProcess(image):
   croppedImage = image[60:135, :, :]
@@ -36,6 +38,7 @@ def imagePreProcess(image):
 
 @webserver.on('telemetry')
 def telemetry(sid, data):
+	speed = float(data['speed'])
 	image = PIL.Image.open(io.BytesIO(base64.b64decode(data['image'])))
 	image = np.asarray(image)
 	image = imagePreProcess(image)
@@ -45,7 +48,9 @@ def telemetry(sid, data):
 	predictedSteering = float(model.predict(image))
 	print(predictedSteering)
 
-	send_control(predictedSteering, 1.0)
+	throttle = 1.0 - speed / speedLimit
+
+	send_control(predictedSteering,throttle)
 
 @webserver.on('connect') # message, disconnect
 def connect(sid, environ):
