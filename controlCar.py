@@ -9,6 +9,7 @@ import PIL
 import numpy as np
 import cv2
 import matplotlib
+import imageio
 
 print("TensorFlow version:", tensorflow.__version__)
 print("Keras version:", keras.__version__)
@@ -25,23 +26,31 @@ model = keras.models.load_model('model2.h5')
 # 	return "Welcome!"
 #
 
-speedLimit = 10.0
+speedLimit = 20.0
 
 def imagePreProcess(image):
   croppedImage = image[60:135, :, :]
   yuvImage = cv2.cvtColor(croppedImage, cv2.COLOR_RGB2YUV)
   smoothedImage = cv2.GaussianBlur(yuvImage, (3, 3), 0)
   resizedImage = cv2.resize(smoothedImage, (200, 66)) # size of the NVIDIA model architecture
-  normalizedImage = resizedImage / 255
+  print(resizedImage.dtype) 
+  # normalizedImage = resizedImage.astype(float)
+  normalizedImage = resizedImage / 255.0
+  print(normalizedImage.dtype) 
 
-  return resizedImage
+  return normalizedImage
 
 @webserver.on('telemetry')
 def telemetry(sid, data):
 	speed = float(data['speed'])
 	image = PIL.Image.open(io.BytesIO(base64.b64decode(data['image'])))
 	image = np.asarray(image)
+	imageio.v2.imwrite('output_image.png', image)
+	print(image.shape)
 	image = imagePreProcess(image)
+	print(image.shape)
+
+	imageio.v2.imwrite('output_image_porcessed.png', (255.0 * image).astype(np.uint8))
 
 	image = np.array([image])
 
